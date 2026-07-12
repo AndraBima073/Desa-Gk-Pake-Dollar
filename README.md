@@ -1,3 +1,4 @@
+
 # Modular AI Backend (FastAPI, API-only)
 
 ## Struktur
@@ -52,3 +53,6 @@ const stats = await fetch("http://localhost:8000/api/v1/dashboard/stats")
 - Ganti query param `user_id` dengan autentikasi (JWT/OAuth2) — struktur sudah siap: cukup ganti dependency di router.
 - Gunakan Alembic untuk migrasi (init_db create_all hanya untuk dev).
 - Set `DATABASE_URL` ke PostgreSQL + asyncpg.
+
+# Desa-Gk-Pake-Dollar
+
