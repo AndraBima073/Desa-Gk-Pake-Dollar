@@ -1,9 +1,0 @@
-fastapi>=0.115
-uvicorn[standard]>=0.30
-sqlalchemy[asyncio]>=2.0
-aiosqlite>=0.20          # dev default; ganti asyncpg utk PostgreSQL
-asyncpg>=0.29            # opsional: PostgreSQL production
-pydantic>=2.7
-pydantic-settings>=2.3
-email-validator>=2.1
-httpx>=0.27
