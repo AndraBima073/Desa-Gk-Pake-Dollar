@@ -1,5 +1,4 @@
-"""Aggregates all v1 resource routers. Carries no prefix of its own — the
-`/api/v1` prefix is applied once, centrally, in `app.main`."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter

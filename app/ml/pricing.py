@@ -1,16 +1,10 @@
-"""Deterministic split-price recommendation: pro-rates a shipment's share of
-a standard 20ft container against typical Indonesian domestic freight
-rates. Extracted from the old LLM-prompt pricing instructions so the same
-business rule is now testable and doesn't depend on model output.
-"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from app.database import STANDARD_MAX_VOLUME_M3, STANDARD_MAX_WEIGHT_TONS
 
-# A full dedicated 20ft container costs roughly IDR 6.5M-9M depending on
-# route distance; use the midpoint as a single flat rate for MVP simplicity.
 _BASE_CONTAINER_COST_IDR = 7_500_000
 _SERVICE_MARGIN = 0.08
 

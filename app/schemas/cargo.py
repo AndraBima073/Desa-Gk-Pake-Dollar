@@ -1,8 +1,4 @@
-"""Pydantic v2 schemas for request input, Gemini structured output, and the
-anonymized API response. No schema in this file ever carries a company_name
-or user_id field — that data lives only in `app.database` and must never be
-serialized back to the client.
-"""
+
 from __future__ import annotations
 
 from datetime import date as date_type
@@ -10,10 +6,6 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-
-# ---------------------------------------------------------------------------
-# Client request
-# ---------------------------------------------------------------------------
 class ConsolidationRequest(BaseModel):
     raw_text: str = Field(
         ...,
@@ -27,18 +19,6 @@ class ConsolidationRequest(BaseModel):
     )
 
 
-# ---------------------------------------------------------------------------
-# Gemini structured output (forced via response_schema)
-#
-# `date` stays a validated ISO-8601 `str` here (not `datetime.date`) because
-# this model is bound directly to Gemini's structured-output schema; the
-# numeric fields stay unconstrained on purpose so the model can faithfully
-# report an illogical/malicious extraction (negative weight, zero volume)
-# instead of the request dying with an opaque 502 on a Pydantic
-# ValidationError. The actual "reject bad values" boundary lives on the
-# response-facing schemas below, plus the defense-in-depth check in
-# AIService._enforce_safety_guardian.
-# ---------------------------------------------------------------------------
 class AIParsedResult(BaseModel):
     origin: str = Field(description="City or port of origin")
     destination: str = Field(description="City or port of destination")
@@ -47,7 +27,6 @@ class AIParsedResult(BaseModel):
     volume_m3: float = Field(description="Total volume in cubic meters")
     weight_tons: float = Field(description="Total weight in metric tons")
 
-    # Pillar 2: Safety Guardian
     is_safe_to_consolidate: bool = Field(
         description="False if the item is Dangerous Goods (DG), explosive, physically "
         "impossible (e.g. negative/zero volume or weight), or otherwise cannot be mixed "
@@ -55,7 +34,6 @@ class AIParsedResult(BaseModel):
     )
     safety_reason: str = Field(description="Explanation of safety compliance or violation")
 
-    # Pillar 3: Smart Negotiation
     recommended_split_price_idr: int = Field(
         description="Fair estimated price for the user to pay for this shared space"
     )
@@ -72,10 +50,6 @@ class AIParsedResult(BaseModel):
             raise ValueError("date must be a valid ISO 8601 date (YYYY-MM-DD)") from exc
         return value
 
-
-# ---------------------------------------------------------------------------
-# API response (fully anonymous, strictly validated)
-# ---------------------------------------------------------------------------
 class ExtractedShipmentData(BaseModel):
     origin: str
     destination: str
@@ -129,10 +103,6 @@ class ConsolidateResponse(BaseModel):
     )
     notification_message: str
 
-
-# ---------------------------------------------------------------------------
-# Route discovery (fully anonymous — no slot_id, company_id, or company_name)
-# ---------------------------------------------------------------------------
 class AvailableRoute(BaseModel):
     origin: str
     destination: str
