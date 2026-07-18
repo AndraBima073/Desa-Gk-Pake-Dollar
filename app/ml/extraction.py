@@ -99,8 +99,6 @@ def _extract_origin_destination(text: str) -> tuple[str | None, str | None]:
     if origin and destination:
         return origin, destination
 
-    # Fallback: no directional keyword found (or only one side matched) —
-    # take the first two distinct city mentions in reading order.
     cities_in_order = _extract_cities(text)
     distinct: list[str] = []
     for _, city in cities_in_order:
@@ -135,8 +133,6 @@ def _extract_date(text: str, reference_date: date_type) -> str | None:
         delta_days = (parsed.date() - reference_date).days
         return -30 <= delta_days <= 730
 
-    # Prefer matches carrying an explicit month name or a recognized
-    # relative-date keyword over a bare number dateparser guessed at.
     strong_matches = [
         parsed
         for matched_text, parsed in results
