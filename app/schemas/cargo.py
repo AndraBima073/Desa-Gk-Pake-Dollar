@@ -122,6 +122,11 @@ class ConsolidateResponse(BaseModel):
     extracted_data: ExtractedShipmentData
     pricing: PricingRecommendation
     match: Optional[AnonymousMatch] = None
+    alternatives: list[AnonymousMatch] = Field(
+        default_factory=list,
+        description="Other capacity-feasible slots the optimizer considered, "
+        "sorted by space_utilization_percent descending (excludes the chosen match).",
+    )
     notification_message: str
 
 
