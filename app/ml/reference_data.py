@@ -1,17 +1,6 @@
-"""Static reference data for the self-hosted (no external API) shipment
-intelligence pipeline: a city/port gazetteer for origin/destination
-matching, and a labeled training set for the dangerous-goods safety
-classifier. Andra: extend `DANGEROUS_GOODS_TRAINING_DATA` with real
-labeled examples (or swap it for a proper dataset) to retrain the
-classifier in `app/ml/safety_classifier.py` — nothing else needs to change.
-"""
+
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# City / port gazetteer. Keys are canonical names (as used in
-# app.database.MOCK_CONTAINER_DB); values are alternate spellings/aliases
-# that should resolve to the same canonical city during extraction.
-# ---------------------------------------------------------------------------
 CITY_ALIASES: dict[str, list[str]] = {
     "Jakarta": ["jakarta", "jkt", "dki jakarta", "jakarta pusat", "jakarta utara"],
     "Surabaya": ["surabaya", "sby"],
@@ -43,12 +32,6 @@ CITY_ALIASES: dict[str, list[str]] = {
     "Gresik": ["gresik"],
 }
 
-# ---------------------------------------------------------------------------
-# Dangerous-goods training set: (text, label). label=1 -> dangerous / unsafe
-# to consolidate, label=0 -> safe general cargo. Text mixes item names and
-# short phrases (Bahasa Indonesia + English) so the TF-IDF vectorizer sees
-# realistic tokens from free-form shipment requests, not just single words.
-# ---------------------------------------------------------------------------
 DANGEROUS_GOODS_TRAINING_DATA: list[tuple[str, int]] = [
     # --- Explosives ---
     ("bahan peledak", 1),
