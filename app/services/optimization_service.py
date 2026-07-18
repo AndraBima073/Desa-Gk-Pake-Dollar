@@ -27,6 +27,7 @@ class OptimizationOutcome:
     found: bool
     candidates_count: int
     match: Optional[AnonymousMatch]
+    alternatives: list[AnonymousMatch]
     message: str
 
 
@@ -55,6 +56,7 @@ class OptimizationService:
                 found=False,
                 candidates_count=0,
                 match=None,
+                alternatives=[],
                 message=(
                     "Tidak ditemukan slot kontainer kompatibel untuk rute dan tanggal ini. "
                     "Pengiriman akan diarahkan ke kontainer khusus (dedicated)."
@@ -63,21 +65,66 @@ class OptimizationService:
 
         best_slot = OptimizationService._solve_best_fit(candidates, parsed)
 
-        combined_volume = round(best_slot.existing_volume_m3 + parsed.volume_m3, 2)
-        combined_weight = round(best_slot.existing_weight_tons + parsed.weight_tons, 2)
-        utilization = round((combined_volume / best_slot.max_volume_m3) * 100, 2)
-        solo_utilization = round((parsed.volume_m3 / best_slot.max_volume_m3) * 100, 2)
+        # Build a fully-populated AnonymousMatch for every capacity-feasible
+        # candidate (not just the winner) so the client can render a "best
+        # match + alternative slots" list, each with its own utility data.
+        matches_by_slot_id = {
+            slot.slot_id: OptimizationService._build_match(slot, parsed, shipment_date)
+            for slot in candidates
+        }
+        match = matches_by_slot_id[best_slot.slot_id]
+        # Transparency: surface what the other candidates would have yielded,
+        # so the client can see the optimizer actually compared options
+        # rather than picking the first compatible slot it found.
+        alternatives = sorted(
+            (m for slot_id, m in matches_by_slot_id.items() if slot_id != best_slot.slot_id),
+            key=lambda m: m.space_utilization_percent,
+            reverse=True,
+        )
+
+        if alternatives:
+            alternatives_text = ", ".join(
+                f"{a.space_utilization_percent}%" for a in alternatives
+            )
+            message = (
+                f"Ditemukan {len(candidates)} slot kontainer kompatibel (alternatif: "
+                f"{alternatives_text}). Slot terbaik dipilih dengan efisiensi ruang "
+                f"gabungan: {match.space_utilization_percent}%."
+            )
+        else:
+            message = (
+                f"Ditemukan {len(candidates)} slot kontainer kompatibel. "
+                f"Slot terbaik dipilih dengan efisiensi ruang gabungan: "
+                f"{match.space_utilization_percent}%."
+            )
+
+        return OptimizationOutcome(
+            found=True,
+            candidates_count=len(candidates),
+            match=match,
+            alternatives=alternatives,
+            message=message,
+        )
+
+    @staticmethod
+    def _build_match(
+        slot: ContainerSlotDB, parsed: AIParsedResult, shipment_date: date_type
+    ) -> AnonymousMatch:
+        combined_volume = round(slot.existing_volume_m3 + parsed.volume_m3, 2)
+        combined_weight = round(slot.existing_weight_tons + parsed.weight_tons, 2)
+        utilization = round((combined_volume / slot.max_volume_m3) * 100, 2)
+        solo_utilization = round((parsed.volume_m3 / slot.max_volume_m3) * 100, 2)
         # Floored at 0: AnonymousMatch.efficiency_gained_percent is ge=0 —
         # rounding noise should never surface as a spurious ValidationError.
         efficiency_gained = max(round(utilization - solo_utilization, 2), 0.0)
 
-        remaining_volume_m3 = round(best_slot.max_volume_m3 - combined_volume, 2)
-        remaining_weight_tons = round(best_slot.max_weight_tons - combined_weight, 2)
+        remaining_volume_m3 = round(slot.max_volume_m3 - combined_volume, 2)
+        remaining_weight_tons = round(slot.max_weight_tons - combined_weight, 2)
         # Whichever dimension is tighter determines how soon the slot fills —
         # same "binding constraint" idea used for pricing.
         remaining_ratio = min(
-            remaining_volume_m3 / best_slot.max_volume_m3,
-            remaining_weight_tons / best_slot.max_weight_tons,
+            remaining_volume_m3 / slot.max_volume_m3,
+            remaining_weight_tons / slot.max_weight_tons,
         )
         if remaining_ratio < 0.10:
             capacity_urgency = "high"
@@ -86,7 +133,7 @@ class OptimizationService:
         else:
             capacity_urgency = "low"
 
-        match = AnonymousMatch(
+        return AnonymousMatch(
             anonymous_slot_reference=f"SLOT-{uuid4().hex[:8].upper()}",
             route=f"{parsed.origin} -> {parsed.destination}",
             consolidation_date=shipment_date,
@@ -97,34 +144,6 @@ class OptimizationService:
             remaining_volume_m3=remaining_volume_m3,
             remaining_weight_tons=remaining_weight_tons,
             capacity_urgency=capacity_urgency,
-        )
-
-        # Transparency: show what utilization the other candidates would have
-        # yielded, so the client can see the optimizer actually compared
-        # options rather than picking the first compatible slot it found.
-        alternative_utilizations = sorted(
-            (
-                round(((slot.existing_volume_m3 + parsed.volume_m3) / slot.max_volume_m3) * 100, 2)
-                for slot in candidates
-                if slot.slot_id != best_slot.slot_id
-            ),
-            reverse=True,
-        )
-        if alternative_utilizations:
-            alternatives_text = ", ".join(f"{u}%" for u in alternative_utilizations)
-            message = (
-                f"Ditemukan {len(candidates)} slot kontainer kompatibel (alternatif: "
-                f"{alternatives_text}). Slot terbaik dipilih dengan efisiensi ruang "
-                f"gabungan: {utilization}%."
-            )
-        else:
-            message = (
-                f"Ditemukan {len(candidates)} slot kontainer kompatibel. "
-                f"Slot terbaik dipilih dengan efisiensi ruang gabungan: {utilization}%."
-            )
-
-        return OptimizationOutcome(
-            found=True, candidates_count=len(candidates), match=match, message=message
         )
 
     @staticmethod

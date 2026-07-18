@@ -75,6 +75,7 @@ async def consolidate_shipment(payload: ConsolidationRequest) -> ConsolidateResp
             extracted_data=extracted_data,
             pricing=pricing,
             match=outcome.match,
+            alternatives=outcome.alternatives,
             notification_message=outcome.message,
         )
     except ValidationError as exc:
