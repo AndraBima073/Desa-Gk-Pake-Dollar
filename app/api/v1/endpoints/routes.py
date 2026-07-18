@@ -1,7 +1,4 @@
-"""Read-only route discovery: lets a client see what container slots exist
-before writing a `raw_text` request, without ever exposing which company
-owns a slot. Purely informational — does not perform matching.
-"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter
