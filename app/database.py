@@ -1,12 +1,4 @@
-"""In-memory mock database of available 20ft container spaces.
 
-`company_id` and `company_name` are intentionally kept in this internal
-model — they exist so the optimization engine could theoretically bill or
-notify the right owner out-of-band, but the API layer (see
-`app/api/v1/endpoints/cargo.py` and `app/services/optimization_service.py`)
-must NEVER serialize these two fields back to a client. That is what makes
-the matchmaking "blind".
-"""
 from __future__ import annotations
 
 from datetime import date
@@ -18,9 +10,9 @@ STANDARD_MAX_WEIGHT_TONS: float = 22.0
 
 
 class ContainerSlotDB(BaseModel):
-    slot_id: str  # internal only, never exposed to the client
-    company_id: str  # internal only, never exposed to the client
-    company_name: str  # internal only, never exposed to the client
+    slot_id: str  
+    company_id: str  
+    company_name: str 
 
     origin: str
     destination: str
