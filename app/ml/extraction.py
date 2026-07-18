@@ -1,11 +1,4 @@
-"""Deterministic, rule-based entity extraction from free-form Indonesian/
-English shipment request text: origin, destination, date, item name,
-volume, and weight. Regex + a curated gazetteer/keyword dictionary
-(`reference_data.py`) instead of an LLM — no network call, no hallucination
-risk, fully unit-testable. This is intentionally the "boring but reliable"
-half of the pipeline; the safety *judgment* call is delegated to the ML
-classifier in `safety_classifier.py`.
-"""
+
 from __future__ import annotations
 
 import re
@@ -17,7 +10,6 @@ from dateparser.search import search_dates
 
 from app.ml.reference_data import CITY_ALIASES, DANGEROUS_GOODS_TRAINING_DATA
 
-# Longest-alias-first so "jakarta pusat" matches before the shorter "jakarta".
 _ALIAS_TO_CANONICAL: dict[str, str] = {
     alias: canonical for canonical, aliases in CITY_ALIASES.items() for alias in aliases
 }
@@ -26,11 +18,6 @@ _CITY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# (regex, unit-to-base-unit multiplier) — volume normalized to m3, weight to
-# metric tons. The leading `-?` is load-bearing: a negative-value injection
-# attempt (e.g. "-5 ton") MUST surface as volume_m3/weight_tons < 0, not get
-# silently absorbed as a positive number — that's what lets the numeric
-# safety-guardian check downstream actually catch it.
 _VOLUME_PATTERNS: list[tuple[re.Pattern, float]] = [
     (re.compile(r"(-?\d+(?:[.,]\d+)?)\s*(?:m3|m\^3|m³|meter\s*kubik|kubik)\b", re.IGNORECASE), 1.0),
     (re.compile(r"(-?\d+(?:[.,]\d+)?)\s*(?:liter|ltr|l)\b", re.IGNORECASE), 0.001),
@@ -41,15 +28,9 @@ _WEIGHT_PATTERNS: list[tuple[re.Pattern, float]] = [
     (re.compile(r"(-?\d+(?:[.,]\d+)?)\s*kg\b", re.IGNORECASE), 0.001),
 ]
 
-# Longest-item-phrase-first, drawn from the same labeled set the classifier
-# trains on, so the extracted item_name and the safety label stay consistent.
 _KNOWN_ITEM_PHRASES: list[str] = sorted(
     (text for text, _ in DANGEROUS_GOODS_TRAINING_DATA), key=len, reverse=True
 )
-# "barang" ("goods"/"item") is deliberately excluded as a trigger word on
-# its own — it's too generic (e.g. "kirim 5 ton barang dari jakarta..." has
-# no actual item name after it, just the directional phrase) and produced
-# false captures like item_name="dari jakarta".
 _ITEM_TRIGGER_PATTERN = re.compile(
     r"(?:kirim|mengirim|muat(?:an)?)\s+"
     r"(?:-?\d+(?:[.,]\d+)?\s*(?:m3|kubik|liter|ltr|l|ton|kuintal|kg)\s+)*"
@@ -58,9 +39,6 @@ _ITEM_TRIGGER_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# Explicit month names + relative-date phrases: dateparser's search_dates can
-# misfire on a bare quantity (e.g. "8 m3") as a day-of-month, so a match
-# carrying one of these tokens is trusted over one that doesn't.
 _STRONG_DATE_SIGNALS = [
     "januari", "februari", "maret", "april", "mei", "juni", "juli",
     "agustus", "september", "oktober", "november", "desember",
@@ -121,8 +99,6 @@ def _extract_origin_destination(text: str) -> tuple[str | None, str | None]:
     if origin and destination:
         return origin, destination
 
-    # Fallback: no directional keyword found (or only one side matched) —
-    # take the first two distinct city mentions in reading order.
     cities_in_order = _extract_cities(text)
     distinct: list[str] = []
     for _, city in cities_in_order:
@@ -157,8 +133,6 @@ def _extract_date(text: str, reference_date: date_type) -> str | None:
         delta_days = (parsed.date() - reference_date).days
         return -30 <= delta_days <= 730
 
-    # Prefer matches carrying an explicit month name or a recognized
-    # relative-date keyword over a bare number dateparser guessed at.
     strong_matches = [
         parsed
         for matched_text, parsed in results

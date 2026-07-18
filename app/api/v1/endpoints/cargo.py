@@ -1,4 +1,4 @@
-"""Single SPA-style endpoint: raw text in, fully processed anonymous JSON out."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
@@ -22,8 +22,6 @@ router = APIRouter()
 
 @router.post("/consolidate", response_model=ConsolidateResponse)
 async def consolidate_shipment(payload: ConsolidationRequest) -> ConsolidateResponse:
-    # 1-2. Parse + evaluate via the self-hosted ML pipeline (extraction +
-    # safety classifier + pricing — see app/services/ml_service.py).
     try:
         parsed = await MLShipmentIntelligenceService.parse_and_evaluate(payload.raw_text)
     except NoLogisticsDataFoundError:
@@ -35,21 +33,13 @@ async def consolidate_shipment(payload: ConsolidationRequest) -> ConsolidateResp
             status_code=502, detail=f"Gagal memproses permintaan: {exc}"
         )
 
-    # 3. Safety gate.
     if not parsed.is_safe_to_consolidate:
         raise HTTPException(status_code=400, detail=parsed.safety_reason)
 
-    # 4. CPU-bound OR-Tools CP-SAT solve — offload to the threadpool so a
-    #    slow solve never blocks the event loop under concurrent load.
     outcome = await run_in_threadpool(
         OptimizationService.find_best_match, parsed, MOCK_CONTAINER_DB
     )
 
-    # 5. Anonymous response assembly. Wrapped: is_safe_to_consolidate only
-    #    guarantees volume/weight are positive (see the numeric_invalid
-    #    check in MLShipmentIntelligenceService); a residual bad value here
-    #    (e.g. a zero-rounded price) must fail as a controlled 400, never
-    #    an unhandled 500.
     try:
         extracted_data = ExtractedShipmentData(
             origin=parsed.origin,
