@@ -1,8 +1,4 @@
-"""Gemini integration: turns unstructured shipment text into a validated
-`AIParsedResult`, performs dangerous-goods + physically-impossible-input
-safety screening ("Safety Guardian"), and produces a fair split-price
-recommendation — all in a single structured-output call.
-"""
+
 from __future__ import annotations
 
 import asyncio
