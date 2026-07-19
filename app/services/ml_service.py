@@ -1,16 +1,4 @@
-"""ML-based shipment intelligence — the active default backend. Combines
-deterministic entity extraction (`app/ml/extraction.py`), the ML safety
-classifier (`app/ml/safety_classifier.py`), and rule-based pricing
-(`app/ml/pricing.py`) into the same `AIParsedResult` contract the rest of
-the app (safety gate, optimization service, response schemas) already
-expects — so this backend drops in without touching the API layer.
 
-Andra: `app.ml.safety_classifier.predict()` is the extension point for a
-real trained model — swap its internals (or point `load_classifier()` at
-your own serialized model) and this file does not need to change. Same
-idea for `app.ml.pricing.recommend_price()` if pricing becomes a learned
-model instead of a formula.
-"""
 from __future__ import annotations
 
 from datetime import datetime
