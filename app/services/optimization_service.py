@@ -28,9 +28,6 @@ class OptimizationService:
     def find_best_match(
         parsed: AIParsedResult, mock_db: list[ContainerSlotDB]
     ) -> OptimizationOutcome:
-        # AIParsedResult.date is a validated ISO string (kept as `str` so it
-        # round-trips through Gemini's structured-output schema); convert
-        # once here to compare against ContainerSlotDB.date, a real `date`.
         shipment_date = date_type.fromisoformat(parsed.date)
 
         candidates = [
