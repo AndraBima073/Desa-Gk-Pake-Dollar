@@ -14,15 +14,6 @@ from pydantic import ValidationError
 from app.core.config import get_settings
 from app.schemas.cargo import AIParsedResult
 
-# Gemini status codes worth retrying: 429 (rate limit), 500/503/504 (transient
-# server-side overload/unavailability) — never retry 4xx like 400/401/403,
-# those are permanent until the request or credentials change.
-_RETRYABLE_STATUS_CODES = {429, 500, 503, 504}
-_MAX_RETRIES = 3
-_BASE_DELAY_SECONDS = 1.5
-# Per-attempt hard cap: a stalled TCP connection or a Gemini response that
-# never arrives must not hang the request indefinitely — treat a timeout
-# exactly like a retryable 503.
 _REQUEST_TIMEOUT_SECONDS = 8.0
 
 _SYSTEM_PROMPT_TEMPLATE = """You are LogistiCore AI, the core intelligence engine for CargoWeaver, an \
