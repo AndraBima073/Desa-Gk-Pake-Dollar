@@ -26,9 +26,6 @@ class MLShipmentIntelligenceService:
         volume_m3 = result.volume_m3 if result.volume_m3 is not None else 0.0
         weight_tons = result.weight_tons if result.weight_tons is not None else 0.0
 
-        # Classify on the full raw text when item_name extraction came up
-        # empty — the safety-critical decision should not depend on the
-        # (best-effort, sometimes-empty) display-name extraction succeeding.
         classification_text = result.item_name or raw_text
         safety = safety_classifier.predict(classification_text)
 
