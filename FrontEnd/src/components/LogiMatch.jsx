@@ -58,7 +58,7 @@ const handleSwipe = (action) => {
 
 return (
     <div className="logimatch-wrapper">
-        <div className="logimatch-contianer">
+        <div className="">
             
             <header className="header">
                 <h2>Nusantara Match</h2>
@@ -167,7 +167,17 @@ return (
                         }
                         </div>
                     )}
-            </div>
+                </div>
+            <footer className='bottom-footer'>
+                <div className='footer-content'>
+                    <p>&copy; 2026 Nusantara Match - Solusi Logistik Maritim Indonesia.</p>
+                    <div className='footer-links'>
+                        <a href='#bantuan'>Pusat Bantuan</a>
+                        <a href='#syarat'>Syarat & Ketentuan</a>
+                        <a href='#privasi'>Kebijakan Privasi</a>
+                    </div>
+                </div>
+            </footer>
         </div>
     </div>
 )
