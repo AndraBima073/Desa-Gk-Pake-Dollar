@@ -1,12 +1,4 @@
-"""1D Bin Packing / Knapsack-style container matching using OR-Tools CP-SAT.
 
-The AI-parsed shipment is treated as a single item that must be placed into
-exactly one compatible 20ft container slot, chosen to maximize the
-resulting combined space utilization (equivalently, minimize leftover
-empty space). This is intentionally solved via CP-SAT rather than a plain
-`max()` so the selection logic generalizes cleanly if candidate containers
-grow to require multi-constraint (volume AND weight) trade-off handling.
-"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -36,9 +28,6 @@ class OptimizationService:
     def find_best_match(
         parsed: AIParsedResult, mock_db: list[ContainerSlotDB]
     ) -> OptimizationOutcome:
-        # AIParsedResult.date is a validated ISO string (kept as `str` so it
-        # round-trips through Gemini's structured-output schema); convert
-        # once here to compare against ContainerSlotDB.date, a real `date`.
         shipment_date = date_type.fromisoformat(parsed.date)
 
         candidates = [
