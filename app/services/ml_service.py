@@ -16,11 +16,44 @@ from __future__ import annotations
 from datetime import datetime
 
 from app.ml import extraction, pricing, safety_classifier
-from app.schemas.cargo import AIParsedResult
+from app.schemas.cargo import AIParsedResult, ConfirmedShipmentData
 from app.services.base import NoLogisticsDataFoundError
 
 
 class MLShipmentIntelligenceService:
+    @staticmethod
+    async def evaluate_confirmed(data: ConfirmedShipmentData) -> AIParsedResult:
+        # data already reviewed by the user, so skip extraction.extract()
+        safety = safety_classifier.predict(data.item_name)
+        is_safe = not safety.is_dangerous
+
+        if safety.is_dangerous:
+            safety_reason = (
+                f"Terindikasi sebagai barang berbahaya (dangerous goods) oleh model "
+                f"klasifikasi ML (keyakinan {safety.confidence * 100:.0f}%) dan tidak "
+                f"dapat dikonsolidasikan dengan kargo umum."
+            )
+        else:
+            safety_reason = (
+                f"Tidak terindikasi sebagai barang berbahaya oleh model klasifikasi ML "
+                f"(keyakinan {safety.confidence * 100:.0f}%). Aman untuk dikonsolidasikan."
+            )
+
+        price = pricing.recommend_price(volume_m3=data.volume_m3, weight_tons=data.weight_tons)
+
+        return AIParsedResult(
+            origin=data.origin,
+            destination=data.destination,
+            date=data.date.isoformat(),
+            item_name=data.item_name,
+            volume_m3=data.volume_m3,
+            weight_tons=data.weight_tons,
+            is_safe_to_consolidate=is_safe,
+            safety_reason=safety_reason,
+            recommended_split_price_idr=price.recommended_split_price_idr,
+            negotiation_basis=price.negotiation_basis,
+        )
+
     @staticmethod
     async def parse_and_evaluate(raw_text: str) -> AIParsedResult:
         reference_date = datetime.now().date()

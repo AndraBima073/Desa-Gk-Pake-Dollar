@@ -59,6 +59,25 @@ class ExtractedShipmentData(BaseModel):
     weight_tons: float = Field(gt=0, description="Must be a strictly positive weight")
 
 
+class ExtractionPreview(BaseModel):
+    # fields nullable — extraction can legitimately miss any of them
+    origin: Optional[str] = None
+    destination: Optional[str] = None
+    date: Optional[date_type] = None
+    item_name: Optional[str] = None
+    volume_m3: Optional[float] = None
+    weight_tons: Optional[float] = None
+
+
+class ConfirmedShipmentData(BaseModel):
+    origin: str = Field(min_length=1)
+    destination: str = Field(min_length=1)
+    date: date_type
+    item_name: str = Field(min_length=1)
+    volume_m3: float = Field(gt=0, description="Must be a strictly positive volume")
+    weight_tons: float = Field(gt=0, description="Must be a strictly positive weight")
+
+
 class PricingRecommendation(BaseModel):
     recommended_split_price_idr: int = Field(gt=0)
     dedicated_container_price_idr: int = Field(
