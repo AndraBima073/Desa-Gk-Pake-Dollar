@@ -25,6 +25,20 @@ class ContainerSlotDB(BaseModel):
     max_weight_tons: float = Field(default=STANDARD_MAX_WEIGHT_TONS, gt=0)
 
 
+# Placeholder ETA ranges (days) per origin-destination pair — rough sea-freight
+# estimates given by Andra, until real ETA data/logic is wired in.
+ROUTE_ETA_DAYS: dict[tuple[str, str], tuple[int, int]] = {
+    ("Jakarta", "Surabaya"): (3, 6),
+    ("Surabaya", "Jakarta"): (3, 6),
+    ("Surabaya", "Makassar"): (8, 10),
+    ("Makassar", "Surabaya"): (8, 10),
+    ("Semarang", "Balikpapan"): (3, 6),
+    ("Balikpapan", "Semarang"): (3, 6),
+    ("Medan", "Jakarta"): (5, 7),
+    ("Jakarta", "Medan"): (5, 7),
+}
+
+
 MOCK_CONTAINER_DB: list[ContainerSlotDB] = [
     ContainerSlotDB(
         slot_id="CTN-JKT-001",
