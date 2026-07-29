@@ -129,3 +129,5 @@ class AvailableRoute(BaseModel):
     available_volume_m3: float = Field(ge=0, description="Remaining space before the slot is full")
     available_weight_tons: float = Field(ge=0)
     space_utilization_percent: float = Field(ge=0, le=100, description="How full the slot already is")
+    eta_min_days: Optional[int] = Field(default=None, ge=0)
+    eta_max_days: Optional[int] = Field(default=None, ge=0)
