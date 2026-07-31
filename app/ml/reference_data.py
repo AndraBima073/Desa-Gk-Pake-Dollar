@@ -30,6 +30,8 @@ CITY_ALIASES: dict[str, list[str]] = {
     "Lampung": ["lampung", "bandar lampung"],
     "Cilegon": ["cilegon"],
     "Gresik": ["gresik"],
+    "Gresik": ["gresik"],
+
 }
 
 DANGEROUS_GOODS_TRAINING_DATA: list[tuple[str, int]] = [
