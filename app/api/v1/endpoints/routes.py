@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.database import MOCK_CONTAINER_DB, ROUTE_ETA_DAYS
+from app.database import MOCK_CONTAINER_DB
+from app.ml.eta import estimate_eta_days
 from app.schemas.cargo import AvailableRoute
 
 router = APIRouter()
@@ -13,7 +14,8 @@ router = APIRouter()
 async def list_available_routes() -> list[AvailableRoute]:
     routes = []
     for slot in MOCK_CONTAINER_DB:
-        eta_min, eta_max = ROUTE_ETA_DAYS.get((slot.origin, slot.destination), (None, None))
+        eta = estimate_eta_days(slot.origin, slot.destination)
+        eta_min, eta_max = eta if eta else (None, None)
         routes.append(
             AvailableRoute(
                 origin=slot.origin,
