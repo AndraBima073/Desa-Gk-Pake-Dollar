@@ -28,7 +28,7 @@ const handleFetchRoutes = async () => {
     setErrorMsg('');
 
     try {
-        const response = await fetch('http://192.168.1.29:8000/api/v1/routes');
+        const response = await fetch('http://api.andrabima.my.id/api/v1/routes');
 
         if (!response.ok) {
             throw new Error('Gagal mengambil daftar kapal.');
@@ -77,7 +77,7 @@ const handleExtractText = async (e) => {
     setErrorMsg('');
 
     try {
-        const response = await fetch('http://192.168.1.29:8000/api/v1/consolidate', {
+        const response = await fetch('http://api.andrabima.my.id/api/v1/consolidate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ raw_text: smartText })
@@ -118,7 +118,7 @@ const handleFindMatch = async (e) => {
     setErrorMsg('');
 
     try {
-        const response = await fetch('http://192.168.1.29:8000/api/v1/consolidate-confirmed', {
+        const response = await fetch('http://api.andrabima.my.id/api/v1/consolidate-confirmed', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
@@ -164,7 +164,6 @@ const handleBooking = (selectedSlot) => {
     const newOrder = {
         ...formData,
         ...selectedSlot,
-        sisa_slot: matchData.match.remaining_volume_m3,
         price: matchData.pricing.recommended_split_price_idr,
         status: 'Menunggu Pembayaran',
         resi: `INV-${Math.floor(Math.random() * 100000)}`
@@ -177,6 +176,21 @@ const handleBooking = (selectedSlot) => {
 
 const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+};
+
+const addDaysToDate = (dateString, days) => {
+    const date = new Date(dateString);  // ⬅️ buat objek Date BARU dari string
+    date.setDate(date.getDate() + days); // ⬅️ ini cuma ubah objek BARU tadi
+    return date.toLocaleDateString('id-ID', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+    });
+};
+
+const formatRupiah = (num) => {
+    if (num === undefined || num === null) return 'Hubungi CS';
+    return `Rp ${num.toLocaleString('id-ID')}`;
 };
 
 return (
@@ -276,7 +290,7 @@ return (
                                 <p>Tidak ada kontainer dengan rute dan jadwal yang sesuai untuk digabungkan dengan barang Anda.</p>
                                 <div className='dedicated-price'>
                                     <span>Saran: Sewa Kontainer Penuh (FCL)</span>
-                                    <strong>{matchData.pricing?.dedicated_container_price_idr || 'Hubungi CS'}</strong>
+                                    <strong>{formatRupiah(matchData.pricing?.dedicated_container_price_idr) || 'Hubungi CS'}</strong>
                                 </div>
                                 <button onClick={() => setActiveView('input')} className='btn-primary' style={{marginTop: '15px'}}>Cari Ulang</button>
                             </div>
@@ -289,10 +303,11 @@ return (
                                     <h4>Slot Kapal Tersedia</h4>
                                     <div className='route'><span>{formData.origin}</span> ➜ <span>{formData.destination}</span></div>
                                     <div className='details'>
-                                        <p><strong>Sisa Kapasitas:</strong> {matchData.sisa_slot}</p>
-                                        <p><strong>Estimasi Tiba:</strong> {matchData.match.eta}</p>
+                                        <p><strong>Sisa Volume:</strong> {matchData.match.remaining_volume_m3} m³</p>
+                                        <p><strong>Sisa Berat:</strong> {matchData.match.remaining_weight_tons} Tons</p>
+                                        <p><strong>Estimasi Tiba:</strong> {addDaysToDate(matchData.match.consolidation_date, matchData.match.eta_min_days)} - {addDaysToDate(matchData.match.consolidation_date, matchData.match.eta_max_days)} </p>
                                     </div>
-                                    <div className='price-tag'>{matchData.match.harga}</div>
+                                    <div className='price-tag'>{formatRupiah(matchData.pricing?.recommended_split_price_idr)}</div>
                                     <button onClick={() => handleBooking(matchData.match)} className='btn-book-match'>Pesan Slot Ini</button>
                                 </div>
                             </div>
@@ -300,10 +315,10 @@ return (
                             {/* KONDISI ALTERNATIF */}
                             {matchData.alternatives && matchData.alternatives.length > 0 && (
                                 <div className='alternative-section'>
-                                    {matchData.alternatives.map((alt, idx) => (
-                                        <div key={idx} className='alt-card'>
+                                    {matchData.alternatives.map((alt) => (
+                                        <div key={alt.anonymous_slot_reference} className='alt-card'>
                                             <div>
-                                                <p><strong>ETA:</strong> {alt.eta}</p>
+                                                <p><strong>ETA:</strong> {addDaysToDate(alt.consolidation_date, alt.eta_min_days)} - {addDaysToDate(alt.consolidation_date, alt.eta_max_days)}</p>
                                                 <p className='alt-price'>{alt.harga}</p>
                                             </div>
                                             <button onClick={() => handleBooking(alt)} className='btn-book-alt'>Pilih</button>
@@ -331,8 +346,8 @@ return (
                                         </div>
                                         <div className='order-details'>
                                             <p><strong>Rute:</strong> {order.origin} - {order.destination}</p>
-                                            <p><strong>Barang:</strong> {order.item_name}, ({order.weight_tons})</p>
-                                            <p><strong>Biaya:</strong> <span style={{color: '#2e7d32', fontWeight:'bold'}}>{order.price}</span></p>
+                                            <p><strong>Barang:</strong> {order.item_name}, ({order.weight_tons} Tons)</p>
+                                            <p><strong>Biaya:</strong> <span style={{color: '#2e7d32', fontWeight:'bold'}}>{formatRupiah(order.price)}</span></p>
                                         </div>
                                     </div>
                                 ))
@@ -363,6 +378,7 @@ return (
                                             <p><strong>Sisa Volume:</strong> {route.available_volume_m3}</p>
                                             <p><strong>Sisa Berat:</strong> {route.available_weight_tons}</p>
                                             <p><strong>Utilisasi Ruang:</strong> {route.space_utilization_percent}</p>
+                                            <p><strong>ETA:</strong> {addDaysToDate(route.date, route.eta_min_days)} - {addDaysToDate(route.date, route.eta_max_days)}</p>
                                         </div>
                                     </div>
                                 ))
