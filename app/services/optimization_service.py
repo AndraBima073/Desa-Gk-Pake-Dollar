@@ -9,6 +9,7 @@ from uuid import uuid4
 from ortools.sat.python import cp_model
 
 from app.database import ContainerSlotDB
+from app.ml.eta import estimate_eta_days
 from app.schemas.cargo import AIParsedResult, AnonymousMatch
 
 _SCALE = 10_000  # CP-SAT requires integer coefficients; scale float ratios up.
@@ -122,6 +123,9 @@ class OptimizationService:
         else:
             capacity_urgency = "low"
 
+        eta = estimate_eta_days(parsed.origin, parsed.destination)
+        eta_min, eta_max = eta if eta else (None, None)
+
         return AnonymousMatch(
             anonymous_slot_reference=f"SLOT-{uuid4().hex[:8].upper()}",
             route=f"{parsed.origin} -> {parsed.destination}",
@@ -133,6 +137,8 @@ class OptimizationService:
             remaining_volume_m3=remaining_volume_m3,
             remaining_weight_tons=remaining_weight_tons,
             capacity_urgency=capacity_urgency,
+            eta_min_days=eta_min,
+            eta_max_days=eta_max,
         )
 
     @staticmethod

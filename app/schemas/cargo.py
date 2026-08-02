@@ -108,6 +108,8 @@ class AnonymousMatch(BaseModel):
     capacity_urgency: Literal["low", "medium", "high"] = Field(
         description="How close this slot is to being full — derived from remaining space"
     )
+    eta_min_days: Optional[int] = Field(default=None, ge=0)
+    eta_max_days: Optional[int] = Field(default=None, ge=0)
 
 
 class ConsolidateResponse(BaseModel):
