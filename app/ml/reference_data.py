@@ -327,3 +327,26 @@ DANGEROUS_GOODS_TRAINING_DATA: list[tuple[str, int]] = [
     ("helm motor SNI", 0),
     ("velg mobil aluminium", 0),
 ]
+
+# app/ml/reference_data.py
+
+import json
+from pathlib import Path
+
+DATASET_PATH = Path(__file__).parent / "manifest_dataset.json"
+
+def load_manifest_benchmark_data() -> list[dict]:
+    """Membaca 5000 data manifes dari file JSON secara instan."""
+    if DATASET_PATH.exists():
+        with open(DATASET_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+# Data Lengkap untuk Extraction / Evaluasi
+MANIFEST_BENCHMARK_DATA = load_manifest_benchmark_data()
+
+# Disesuaikan otomatis untuk safety_classifier.py tanpa perlu merubah kodenya
+DANGEROUS_GOODS_TRAINING_DATA = [
+    (item["raw_text"], 1 if item["ground_truth"]["is_dangerous"] else 0)
+    for item in MANIFEST_BENCHMARK_DATA
+]
