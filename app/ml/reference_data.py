@@ -328,8 +328,6 @@ DANGEROUS_GOODS_TRAINING_DATA: list[tuple[str, int]] = [
     ("velg mobil aluminium", 0),
 ]
 
-# app/ml/reference_data.py
-
 import json
 from pathlib import Path
 
@@ -342,10 +340,8 @@ def load_manifest_benchmark_data() -> list[dict]:
             return json.load(f)
     return []
 
-# Data Lengkap untuk Extraction / Evaluasi
 MANIFEST_BENCHMARK_DATA = load_manifest_benchmark_data()
 
-# Disesuaikan otomatis untuk safety_classifier.py tanpa perlu merubah kodenya
 DANGEROUS_GOODS_TRAINING_DATA = [
     (item["raw_text"], 1 if item["ground_truth"]["is_dangerous"] else 0)
     for item in MANIFEST_BENCHMARK_DATA
