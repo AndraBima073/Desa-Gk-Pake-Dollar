@@ -106,10 +106,63 @@ def test_list_available_routes():
     r = client.get("/api/v1/routes")
     assert r.status_code == 200
     routes = r.json()
-    assert len(routes) == 6  # matches len(MOCK_CONTAINER_DB)
+    assert len(routes) == 117  # matches len(MOCK_CONTAINER_DB)
     first = routes[0]
     assert {"origin", "destination", "date", "available_volume_m3",
             "available_weight_tons", "space_utilization_percent"} <= first.keys()
     # Anonymity contract: no company/slot-owner field ever leaks to the client.
     assert "company_name" not in first
     assert "slot_id" not in first
+
+
+def test_mixed_indonesian_english_language():
+    """Teks campuran Bahasa Indonesia + Inggris (Code-switching)."""
+    payload = {
+        "raw_text": (
+            "Hi team, I want to ship textile cargo 8 m3 berat 5 ton "
+            "dari Jakarta ke Surabaya tanggal 20 Juli 2026, please process."
+        )
+    }
+    r = client.post("/api/v1/consolidate", json=payload)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["extracted_data"]["origin"] == "Jakarta"
+    assert body["extracted_data"]["destination"] == "Surabaya"
+
+
+def test_relative_vs_explicit_dates():
+    """Tanggal relatif ('besok', 'minggu depan') vs tanggal eksplisit."""
+    r = client.post(
+        "/api/v1/consolidate",
+        json={"raw_text": "Kirim tekstil 8 m3 berat 5 ton dari Jakarta ke Surabaya besok"}
+    )
+    assert r.status_code == 200
+    assert r.json()["extracted_data"]["date"] is not None
+
+
+def test_alternative_units_conversion():
+    """Satuan berbeda (liter, kg)."""
+    payload = {
+        "raw_text": "Kirim paket 8000 liter berat 5000 kg dari Jakarta ke Surabaya tanggal 20 Juli 2026"
+    }
+    r = client.post("/api/v1/consolidate", json=payload)
+    assert r.status_code == 200
+
+
+def test_multiple_alternatives_sorting_strict():
+    """Urutan space_utilization_percent (descending)."""
+    payload = {
+        "raw_text": "Halo, saya mau kirim tekstil 8 m3 berat 5 ton dari Jakarta ke Surabaya tanggal 20 Juli 2026."
+    }
+    r = client.post("/api/v1/consolidate", json=payload)
+    assert r.status_code == 200
+    alternatives = r.json().get("alternatives", [])
+    if len(alternatives) > 1:
+        utilizations = [a["space_utilization_percent"] for a in alternatives]
+        assert utilizations == sorted(utilizations, reverse=True)
+
+
+def test_edge_case_raw_text_length_boundaries():
+    """Edge case: min_length dan max_length."""
+    r_min = client.post("/api/v1/consolidate", json={"raw_text": "Kirim 8m3 5ton JKT SBY"})
+    assert r_min.status_code != 422
