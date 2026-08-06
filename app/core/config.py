@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "CargoWeaver - Anonymous Smart Logistics Consolidation Platform"
     API_V1_PREFIX: str = "/api/v1"
     GEMINI_API_KEY: Optional[str] = None
-    GEMINI_MODEL_NAME: str = "gemini-3.5-flash"
+    GEMINI_MODEL_NAME: str = "gemini-3.5-flash-lite"
+    AI_SHIPMENT_PARSING_ENABLED: bool = True
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     @property
