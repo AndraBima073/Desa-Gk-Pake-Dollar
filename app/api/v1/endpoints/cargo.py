@@ -20,7 +20,7 @@ from app.schemas.cargo import (
     PricingRecommendation,
 )
 from app.services.base import NoLogisticsDataFoundError, ShipmentIntelligenceError
-from app.services.ml_service import MLShipmentIntelligenceService
+from app.services.hybrid_service import HybridShipmentIntelligenceService
 from app.services.optimization_service import OptimizationService
 
 router = APIRouter()
@@ -61,6 +61,7 @@ async def _build_consolidate_response(parsed: AIParsedResult) -> ConsolidateResp
             match=outcome.match,
             alternatives=outcome.alternatives,
             notification_message=outcome.message,
+            intelligence_source=parsed.intelligence_source,
         )
     except ValidationError as exc:
         raise HTTPException(
@@ -89,14 +90,14 @@ async def extract_shipment_data(payload: ConsolidationRequest) -> ExtractionPrev
 
 @router.post("/consolidate-confirmed", response_model=ConsolidateResponse)
 async def consolidate_confirmed_shipment(payload: ConfirmedShipmentData) -> ConsolidateResponse:
-    parsed = await MLShipmentIntelligenceService.evaluate_confirmed(payload)
+    parsed = await HybridShipmentIntelligenceService.evaluate_confirmed(payload)
     return await _build_consolidate_response(parsed)
 
 
 @router.post("/consolidate", response_model=ConsolidateResponse)
 async def consolidate_shipment(payload: ConsolidationRequest) -> ConsolidateResponse:
     try:
-        parsed = await MLShipmentIntelligenceService.parse_and_evaluate(payload.raw_text)
+        parsed = await HybridShipmentIntelligenceService.parse_and_evaluate(payload.raw_text)
     except NoLogisticsDataFoundError:
         raise HTTPException(
             status_code=422, detail="Data logistik tidak ditemukan dalam teks"

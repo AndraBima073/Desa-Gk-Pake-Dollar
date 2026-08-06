@@ -40,6 +40,10 @@ class AIParsedResult(BaseModel):
     negotiation_basis: str = Field(
         description="Why this price is fair based on volume/weight ratio"
     )
+    intelligence_source: Literal["gemini_ai", "ml_pipeline"] = Field(
+        default="ml_pipeline",
+        description="Which engine produced this result",
+    )
 
     @field_validator("date")
     @classmethod
@@ -123,6 +127,7 @@ class ConsolidateResponse(BaseModel):
         "sorted by space_utilization_percent descending (excludes the chosen match).",
     )
     notification_message: str
+    intelligence_source: Literal["gemini_ai", "ml_pipeline"]
 
 class AvailableRoute(BaseModel):
     origin: str
