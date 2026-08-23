@@ -19,6 +19,8 @@ const LogiMatch = () => {
     const [routes, setRoutes] = useState([]);
     const [loadingRoutes, setLoadingRoutes] = useState(false);
 
+    const [aiSource, setAiSource] = useState(null);
+
 
 
 // Fungsi Ekstraksi Teks (NLP)
@@ -28,7 +30,7 @@ const handleFetchRoutes = async () => {
     setErrorMsg('');
 
     try {
-        const response = await fetch('http://api.andrabima.my.id/api/v1/routes');
+        const response = await fetch('https://api.andrabima.my.id/api/v1/routes');
 
         if (!response.ok) {
             throw new Error('Gagal mengambil daftar kapal.');
@@ -77,15 +79,25 @@ const handleExtractText = async (e) => {
     setErrorMsg('');
 
     try {
-        const response = await fetch('http://api.andrabima.my.id/api/v1/consolidate', {
+        const response = await fetch('https://api.andrabima.my.id/api/v1/consolidate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ raw_text: smartText })
         });
-        
-        if (response.ok) {
+
+        if (response.status === 400 || response.status === 422) {
+            const errData = await response.json();
+            throw new Error(errData.detail || 'Validasi gagal atau barang berbahaya.');
+        } else if (response.status == 502) {
+            throw new Error('Terjadi kesalahan server, silahkan coba lagi.');
+        } else if (!response.ok) {
+            throw new Error('Gagal menghubungi server.');
+        }
+        else if (response.ok) {
             const data = await response.json();
             setFormData(data.extracted_data);
+            setAiSource(data.intelligence_source);
+            setActiveView('preview');
         } else {
             throw new Error('API Extractor Not Ready ⚠');
         }
@@ -93,21 +105,27 @@ const handleExtractText = async (e) => {
 
     // Tester
     catch (err) {
-        console.log("Menggunakan fallback extraksi lokal untuk demo...")
 
-        setFormData({
-            origin: 'Jakarta',
-            destination: 'Surabaya',
-            date: '2026-07-20',
-            item_name: 'Sagu',
-            volume_m3: '8',
-            weight_tons: '5'
-        });
-    } 
+        setErrorMsg(err.message);
+
+        if (err.message.includes('Failed to fetch')) {
+            console.log("Menggunakan fallback extraksi lokal untuk demo...")
+            setFormData({
+                origin: 'Jakarta',
+                destination: 'Surabaya',
+                date: '2026-07-20',
+                item_name: 'Sagu',
+                volume_m3: '8',
+                weight_tons: '5'
+            });
+            setAiSource({ gemini_ai:true, ml_pipeline: true});
+            setActiveView('preview');
+        } 
+    }
    
     finally {
         setLoading(false);
-        setActiveView('preview');
+        //setActiveView('preview');
     }
 };
 
@@ -118,7 +136,7 @@ const handleFindMatch = async (e) => {
     setErrorMsg('');
 
     try {
-        const response = await fetch('http://api.andrabima.my.id/api/v1/consolidate-confirmed', {
+        const response = await fetch('https://api.andrabima.my.id/api/v1/consolidate-confirmed', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
@@ -132,7 +150,6 @@ const handleFindMatch = async (e) => {
         } else if (!response.ok) {
             throw new Error('Gagal menghubungi server.');
         }
-
         const data = await response.json();
         setMatchData(data);
     } 
@@ -210,14 +227,14 @@ return (
         <main className='main-content'>
             <div className='content-card'>
 
-                {/* Tampilan Error */}
-                {errorMsg && <div className='error-alert'>⚠ {errorMsg}</div>}
-
                 {/* LANGKAH 1: FORMULIR */}
                 {activeView === 'input' && (
                     <div className='form-section'>
                         <h3 className='section-title'>Pencarian AI</h3>
                         <p className='helper-text'>Ketik kebutuhan logistik anda, AI kami akan memproseskannya untuk anda</p>
+
+                        {/* Tampilan Error */}
+                        {errorMsg && <div className='error-alert'>⚠ {errorMsg}</div>}
 
                         <form onSubmit={handleExtractText}>
                             <textarea
@@ -238,6 +255,23 @@ return (
                 {/* LANGKAH 2: MATCHING CARD*/}
                 {activeView === 'preview' && (
                     <div className='form-section'>
+
+                        {/* Tampilan Error */}
+                        {errorMsg && <div className='error-alert'>⚠ {errorMsg}</div>}
+
+                        {/* Tampilan AI/ML */}
+                        {aiSource && (
+                            <div className="ai-source-badge" style={{ marginBottom: '15px' }}>
+                                <span className="ai-icon">🧠</span> Data diekstrak menggunakan: 
+                                <strong>
+                                    {aiSource.gemini_ai ? ' Gemini AI' : ''}
+                                    {aiSource.gemini_ai && aiSource.ml_pipeline ? ' & ' : ''}
+                                    {aiSource.ml_pipeline ? ' ML Pipeline' : ''}
+                                </strong>
+                            </div>
+                        )}
+
+
                         <h3 className='section-title'>Cek & Koreksi Data</h3>
                         <p className='helper-text'>Berikut adalah data yang terbaca. Silahkan koreksi jika ada yang kurang tepat.</p>
 

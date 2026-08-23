@@ -371,6 +371,17 @@ body {
     color: #475569;
 }
 
+.ai-source-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #e0e7ff, #ede9fe);
+  color: #4338ca;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid #c7d2fe;
+}
+.ai-icon { margin-right: 6px; }
+
 
 @media (max-width: 768px) {
     .footer-links {
